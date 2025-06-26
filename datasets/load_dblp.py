@@ -1,13 +1,11 @@
 # datasets/load_dblp.py
-import torch
-from torch_geometric.datasets import AcademicGraphDataset
 from torch_geometric.datasets import HGBDataset
+import torch
 
-def load_dblp(root='data/DBLP'):
-    dataset = AcademicGraphDataset(root=root, name='dblp')
-    data = dataset[0]
-    return data
-
-if __name__ == '__main__':
+def load_dblp():
     dataset = HGBDataset(root='/tmp/HGB', name='DBLP')
-    print(dataset)
+    data = dataset[0]
+    # 为venue节点添加one-hot编码特征0
+    num_venues = 20
+    data['venue'].x = torch.eye(num_venues)
+    return data

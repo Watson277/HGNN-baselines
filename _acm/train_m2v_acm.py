@@ -1,10 +1,9 @@
 from torch_geometric.nn.models import MetaPath2Vec
 import torch
-from torch_geometric.datasets import HGBDataset
+from datasets.load_acm import load_acm
 
 # 加载 ACM 数据集
-dataset = HGBDataset(root='/tmp/HGB', name='ACM')
-data = dataset[0]
+data = load_acm()
 
 metapath = [
     ('paper', 'to', 'author'),
@@ -50,8 +49,10 @@ from sklearn.metrics import accuracy_score
 def test():
     model.eval()
 
-    z = model('paper')  # 获取所有 paper 节点的嵌入
+    # 获取 paper 节点的嵌入（假设我们要分类 paper 节点）
+    z = model('paper')
     z = z.cpu().numpy()
+
     y = data['paper'].y.cpu().numpy()
     train_mask = data['paper'].train_mask.cpu().numpy()
     test_mask = data['paper'].test_mask.cpu().numpy()

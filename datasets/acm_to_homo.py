@@ -1,4 +1,4 @@
-# convert_acm_to_homogeneous.py
+# acm_to_homo.py
 import torch
 from torch.nn import Linear
 from torch_geometric.datasets import HGBDataset

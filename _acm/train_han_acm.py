@@ -1,13 +1,9 @@
 import torch
-from torch_geometric.datasets import HGBDataset
-from torch_geometric.transforms import ToUndirected, AddSelfLoops
-from torch_geometric.transforms import Compose
-from torch_geometric.transforms import AddMetaPaths
 from models.han import HAN
+from datasets.load_acm import load_acm
 
 # 加载 ACM 数据集
-dataset = HGBDataset(root='/tmp/HGB', name='ACM')
-data = dataset[0]
+data = load_acm()
 
 # 给没有特征的节点补上 x
 if 'term' not in data.x_dict:
