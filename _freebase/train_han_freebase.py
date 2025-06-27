@@ -1,30 +1,27 @@
 import torch
-import torch.nn.functional as F
-from datasets.load_dblp import load_dblp
+from datasets.load_freebase import load_freebase, add_node_features
 from models.han import HAN2
+import torch.nn.functional as F
 
-# 加载 DBLP 数据集
-data = load_dblp()
+data = load_freebase()
+data = add_node_features(data, feature_dim=128)
 print(data)
 
-# 只选定用于分类的节点类型：author
-target_node_type = 'author'
+# 获取类别数（book的标签）
+num_classes = int(data['book'].y.max()) + 1
 
-# 输入维度（各节点特征维度）
+# 只选定用于分类的节点类型：book
+target_node_type = 'book'
+
 in_channels_dict = {
-    'author': 334,
-    'paper': 4231,
-    'term': 50,
-    'venue': 20
+    node_type: data[node_type].num_features
+    for node_type in data.node_types
 }
-
-hidden_channels = 64
-out_channels = 4  # 比如4分类，根据你的标签数调整
 
 model = HAN2(
     in_channels_dict=in_channels_dict,
-    hidden_channels=hidden_channels,
-    out_channels=out_channels,
+    hidden_channels=64,
+    out_channels=num_classes,
     metadata=data.metadata(),
     heads=2,
     dropout=0.6
@@ -61,3 +58,6 @@ for epoch in range(1, 101):
     loss = train()
     train_acc, test_acc = test()
     print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+
+
+    

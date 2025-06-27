@@ -5,9 +5,6 @@ import torch
 def load_freebase():
     dataset = HGBDataset(root='/tmp/HGB', name='freebase')
     data = dataset[0]
-    # 为venue节点添加one-hot编码特征0
-    num_venues = 20
-    data['venue'].x = torch.eye(num_venues)
     return data
 
 def add_node_features(data, feature_dim=128):
