@@ -1,4 +1,10 @@
 # train_gcn_on_acm.py
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import torch
 from models.gat import GAT
 from datasets.acm_to_homo import convert_acm_to_homogeneous
@@ -42,21 +48,38 @@ def train():
 
     return loss.item(), train_acc.item()
 
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
 
 @torch.no_grad()
 def test():
     model.eval()
-    out = model(data.x, data.edge_index)
-    out_paper = out[paper_idx]
-    pred = out_paper.argmax(dim=1)
-    acc = (pred[test_mask] == y[test_mask]).float().mean()
-    return acc.item()
+    out = model(data.x, data.edge_index)            # shape: [total_nodes, num_classes]
+    out_paper = out[paper_idx]                      # 只取 paper 节点
+    pred = out_paper.argmax(dim=1)                  # shape: [num_paper_nodes]
 
+    y_true = y[test_mask].cpu()                     # shape: [num_test_samples]
+    y_pred = pred[test_mask].cpu()                  # predicted labels
+    prob = F.softmax(out_paper[test_mask], dim=1).cpu()  # softmax 概率
+    y_onehot = F.one_hot(y_true, num_classes=prob.size(1)).float()
 
-# === 4. 训练主循环 ===
+    acc = (y_pred == y_true).float().mean().item()
+    f1_micro = f1_score(y_true, y_pred, average='micro')
+    f1_macro = f1_score(y_true, y_pred, average='macro')
+
+    try:
+        auc_macro = roc_auc_score(y_onehot, prob, average='macro', multi_class='ovr')
+    except ValueError:
+        auc_macro = float('nan')  # 类别太少时无法计算 AUC
+
+    return acc, f1_micro, f1_macro, auc_macro
+
+# === 训练主循环 ===
 for epoch in range(1, 101):
     loss, train_acc = train()
-    test_acc = test()
-    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+    test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, "
+          f"Test Acc: {test_acc:.4f}, Test F1-Mi: {test_f1_micro:.4f}, "
+          f"Test F1-Ma: {test_f1_macro:.4f}, Test AUC: {test_auc:.4f}")
 
 

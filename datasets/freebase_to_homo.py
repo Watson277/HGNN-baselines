@@ -4,10 +4,13 @@ from torch.nn import Linear
 from torch_geometric.datasets import HGBDataset
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+from datasets.load_freebase import sample_train_mask_for_target_class
+
 
 def convert_freebase_to_homogeneous(proj_dim=128):
     dataset = HGBDataset(root='/tmp/HGB', name='Freebase')
     data = dataset[0]
+    data  =sample_train_mask_for_target_class(data)
 
     # 1. 给没有特征的节点添加随机初始化的特征
     for node_type in data.node_types:
@@ -64,3 +67,5 @@ def convert_freebase_to_homogeneous(proj_dim=128):
     )
 
     return new_data
+
+

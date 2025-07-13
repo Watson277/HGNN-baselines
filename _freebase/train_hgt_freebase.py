@@ -1,13 +1,22 @@
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import torch
-from datasets.load_freebase import load_freebase, add_node_features
+from datasets.load_freebase import load_freebase, add_node_features, sample_train_mask_for_target_class, node_type
 from models.hgt import HGT2
 
 data = load_freebase()
 data = add_node_features(data, feature_dim=128)
 print(data)
+data = sample_train_mask_for_target_class(data)
+
+target_node_type = node_type
 
 # 获取类别数（book的标签）
-num_classes = int(data['book'].y.max()) + 1
+num_classes = int(data[target_node_type].y.max()) + 1
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -36,29 +45,56 @@ data = data.to(device)
 def train():
     model.train()
     out = model(data.x_dict, data.edge_index_dict)
-    out = out['book']
-    loss = loss_fn(out[data['book'].train_mask], data['book'].y[data['book'].train_mask])
+    out = out[target_node_type]
+    loss = loss_fn(out[data[target_node_type].train_mask], data[target_node_type].y[data[target_node_type].train_mask])
     
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     return loss.item()
 
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
+
 @torch.no_grad()
 def test():
     model.eval()
-    out = model(data.x_dict, data.edge_index_dict)['book']
+    out = model(data.x_dict, data.edge_index_dict)[target_node_type]
     pred = out.argmax(dim=1)
 
     accs = []
     for split in ['train_mask', 'test_mask']:
-        mask = data['book'][split]
-        acc = (pred[mask] == data['book'].y[mask]).sum() / mask.sum()
+        mask = data[target_node_type][split]
+        acc = (pred[mask] == data[target_node_type].y[mask]).sum() / mask.sum()
         accs.append(acc.item())
-    return accs
+
+    # F1 分数
+    test_mask = data[target_node_type]['test_mask']
+    y_true = data[target_node_type].y[test_mask].cpu()
+    y_pred = pred[test_mask].cpu()
+
+    f1_micro = f1_score(y_true, y_pred, average='micro')
+    f1_macro = f1_score(y_true, y_pred, average='macro')
+
+    # AUC 分数（多分类 One-vs-Rest）
+    y_score = F.softmax(out[test_mask], dim=1).cpu()
+    y_true_one_hot = F.one_hot(y_true, num_classes=y_score.size(1))
+
+    try:
+        auc = roc_auc_score(y_true_one_hot, y_score, average='macro', multi_class='ovr')
+    except ValueError:
+        auc = float('nan')  # 防止某些类别在test中没有出现时抛错
+
+    return accs[0], accs[1], f1_micro, f1_macro, auc
+
 
 if __name__ == '__main__':
     for epoch in range(1, 201):
         loss = train()
-        train_acc, test_acc = test()
-        print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+        train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+        print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
+              f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
+              f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
+              f"Test AUC: {test_auc:.4f}")
+
+

@@ -1,4 +1,10 @@
 # train_gat_on_yelp.py
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import torch
 from models.gat import GAT
 from datasets.yelp_to_homo import convert_yelp_to_homogeneous
@@ -41,19 +47,40 @@ def train():
 
     return loss.item(), train_acc.item()
 
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
 
 @torch.no_grad()
 def test():
     model.eval()
-    out = model(data.x, data.edge_index)
-    out_paper = out[business_idx]
-    pred = out_paper.argmax(dim=1)
-    acc = (pred[test_mask] == y[test_mask]).float().mean()
-    return acc.item()
+    out = model(data.x, data.edge_index)     # [num_nodes, num_classes]
+    out_business = out[business_idx]         # 只取 business 节点
+    pred = out_business.argmax(dim=1)
+
+    y_true = y[test_mask].cpu()
+    y_pred = pred[test_mask].cpu()
+
+    acc = (y_pred == y_true).float().mean().item()
+    f1_micro = f1_score(y_true, y_pred, average='micro')
+    f1_macro = f1_score(y_true, y_pred, average='macro')
+
+    # AUC（多分类 One-vs-Rest 或二分类）
+    try:
+        probs = F.softmax(out_business[test_mask], dim=1).cpu()
+        if probs.size(1) == 2:
+            auc = roc_auc_score(y_true, probs[:, 1])  # 二分类直接用正类概率
+        else:
+            y_true_onehot = F.one_hot(y_true, num_classes=probs.size(1))
+            auc = roc_auc_score(y_true_onehot, probs, average='macro', multi_class='ovr')
+    except ValueError:
+        auc = float('nan')  # 如果测试集中缺失某些类
+
+    return acc, f1_micro, f1_macro, auc
 
 
-# === 4. 训练主循环 ===
 for epoch in range(1, 101):
     loss, train_acc = train()
-    test_acc = test()
-    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+    test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, "
+          f"Test Acc: {test_acc:.4f}, Test F1-Micro: {test_f1_micro:.4f}, "
+          f"Test F1-Macro: {test_f1_macro:.4f}, Test AUC: {test_auc:.4f}")

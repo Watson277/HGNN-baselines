@@ -4,10 +4,12 @@ from torch.nn import Linear
 from torch_geometric.datasets import HGBDataset
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+from datasets.load_acm import sample_train_mask_for_target_class
 
 def convert_acm_to_homogeneous(proj_dim=128):
     dataset = HGBDataset(root='/tmp/HGB', name='ACM')
     data = dataset[0]
+    data = sample_train_mask_for_target_class(data)
 
     if 'term' not in data.x_dict:
         data['term'].x = torch.randn(data['term'].num_nodes, 1902).float()

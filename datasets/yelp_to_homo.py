@@ -2,10 +2,12 @@ import torch
 from torch.nn import Linear
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+from datasets.load_yelp import sample_train_mask_for_target_class
 
 def convert_yelp_to_homogeneous(path='./datasets/Yelp JSON/yelp.pt', proj_dim=64):
     # 加载异构图
     data = torch.load(path)
+    data = sample_train_mask_for_target_class(data)
 
     # 1. 每类节点一个投影层
     proj_layers = {

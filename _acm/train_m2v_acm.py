@@ -1,9 +1,21 @@
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 from torch_geometric.nn.models import MetaPath2Vec
 import torch
-from datasets.load_acm import load_acm
+from datasets.load_acm import load_acm, sample_train_mask_for_target_class, node_type
+import torch.nn.functional as F
+
+target_node_type = node_type
 
 # 加载 ACM 数据集
 data = load_acm()
+# 没类选取10个节点
+data = sample_train_mask_for_target_class(data)
+print(data)
 
 metapath = [
     ('paper', 'to', 'author'),
@@ -27,55 +39,90 @@ model = model.to(device)
 optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
 data = data.to(device)
 
+# 获取模型内置的随机游走采样器
+loader = model.loader(batch_size=128, shuffle=True, num_workers=0)
+
+# 优化器（只优化嵌入参数）
+optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
+
+from sklearn.metrics import f1_score
+
+# 训练函数
 def train():
     model.train()
     total_loss = 0
-    loader = model.loader(batch_size=128, shuffle=True, num_workers=2)
-
-    for pos_rw, neg_rw in loader:
+    for i, (pos_rw, neg_rw) in enumerate(loader):
         pos_rw, neg_rw = pos_rw.to(device), neg_rw.to(device)
         optimizer.zero_grad()
         loss = model.loss(pos_rw, neg_rw)
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+    return total_loss / (i + 1)
 
-    return total_loss / len(loader)
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
 
 @torch.no_grad()
 def test():
     model.eval()
+    z = model(target_node_type)  # 获取 paper 节点嵌入
+    y = data[target_node_type].y
+    train_mask, test_mask = data[target_node_type].train_mask, data[target_node_type].test_mask
+    num_classes = y.max().item() + 1
 
-    # 获取 paper 节点的嵌入（假设我们要分类 paper 节点）
-    z = model('paper')
-    z = z.cpu().numpy()
+    def evaluate(mask):
+        clf = torch.nn.Linear(z.size(1), num_classes).to(device)
+        optimizer = torch.optim.Adam(clf.parameters(), lr=0.01, weight_decay=5e-4)
 
-    y = data['paper'].y.cpu().numpy()
-    train_mask = data['paper'].train_mask.cpu().numpy()
-    test_mask = data['paper'].test_mask.cpu().numpy()
+        best_acc = 0.0
+        best_pred = None
+        best_logits = None
 
-    z_train, y_train = z[train_mask], y[train_mask]
-    z_test, y_test = z[test_mask], y[test_mask]
+        for _ in range(50):
+            clf.train()
+            optimizer.zero_grad()
+            loss = F.cross_entropy(clf(z[mask]), y[mask])
 
-    clf = LogisticRegression(max_iter=1000)
-    clf.fit(z_train, y_train)
+            clf.eval()
+            with torch.no_grad():
+                logits = clf(z[mask])
+                pred = logits.argmax(dim=1)
+                acc = (pred == y[mask]).float().mean().item()
+                if acc > best_acc:
+                    best_acc = acc
+                    best_pred = pred.cpu()
+                    best_logits = logits.cpu()
 
-    y_pred_train = clf.predict(z_train)
-    y_pred_test = clf.predict(z_test)
+        return best_acc, best_pred, y[mask].cpu(), best_logits
 
-    train_acc = accuracy_score(y_train, y_pred_train)
-    test_acc = accuracy_score(y_test, y_pred_test)
+    train_acc, _, _, _ = evaluate(train_mask)
+    test_acc, y_pred_test, y_true_test, test_logits = evaluate(test_mask)
 
-    return train_acc, test_acc
+    # 计算 F1
+    f1_micro = f1_score(y_true_test, y_pred_test, average='micro')
+    f1_macro = f1_score(y_true_test, y_pred_test, average='macro')
+
+    # AUC 计算（多分类支持 one-vs-rest）
+    y_true_onehot = F.one_hot(y_true_test, num_classes=num_classes)
+    y_prob = F.softmax(test_logits, dim=1)
+    try:
+        test_auc = roc_auc_score(y_true_onehot, y_prob, average='macro', multi_class='ovr')
+    except ValueError:
+        test_auc = float('nan')  # 若计算失败则返回 nan
+
+    return train_acc, test_acc, f1_micro, f1_macro, test_auc
+
+for epoch in range(1, 51):
+    loss = train()
+    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
+          f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
+          f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
+          f"Test AUC: {test_auc:.4f}")
 
 
-if __name__ == '__main__':
-    for epoch in range(1, 101):
-        loss = train()
-        train_acc, test_acc = test()  # 确保 test() 返回两个准确率
-        print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+
 
 

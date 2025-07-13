@@ -1,10 +1,19 @@
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 from torch_geometric.nn.models import MetaPath2Vec
 import torch
 from datasets.load_dblp import load_dblp
 import torch.nn.functional as F
+from datasets.load_dblp import load_dblp, sample_train_mask_for_target_class
 
 # 加载 DBLP 数据集
 data = load_dblp()
+print(data)
+data = sample_train_mask_for_target_class(data)
 
 # 定义 metapath，例如：author-paper-author（APA）
 metapath = [
@@ -48,40 +57,72 @@ def train():
         total_loss += loss.item()
     return total_loss / (i + 1)
 
-# 嵌入函数（只针对某一类节点）
+from sklearn.metrics import f1_score
+
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
+
 @torch.no_grad()
 def test():
     model.eval()
-    z = model('author')  # 取出 author 的嵌入
+    z = model('author')  # 获取 author 节点嵌入
     y = data['author'].y
-    split = data['author'].train_mask, data['author'].test_mask
+    train_mask, test_mask = data['author'].train_mask, data['author'].test_mask
+    num_classes = y.max().item() + 1
 
-    accs = []
-    for mask in split:
-        clf = torch.nn.Linear(z.size(1), y.max().item() + 1).to(device)
+    def evaluate(mask):
+        clf = torch.nn.Linear(z.size(1), num_classes).to(device)
         optimizer = torch.optim.Adam(clf.parameters(), lr=0.01, weight_decay=5e-4)
 
-        best_acc = 0
-        for _ in range(50):  # 用 Logistic Regression 分类
+        best_acc = 0.0
+        best_pred = None
+        best_logits = None
+
+        for _ in range(50):  # 模拟逻辑回归训练
             clf.train()
             optimizer.zero_grad()
-            loss = F.cross_entropy(clf(z[mask], ), y[mask])
+            loss = F.cross_entropy(clf(z[mask]), y[mask])
 
 
             clf.eval()
-            pred = clf(z[mask]).argmax(dim=1)
-            acc = (pred == y[mask]).float().mean().item()
-            best_acc = max(best_acc, acc)
-        accs.append(best_acc)
-    return accs
+            with torch.no_grad():
+                logits = clf(z[mask])
+                pred = logits.argmax(dim=1)
+                acc = (pred == y[mask]).float().mean().item()
+                if acc > best_acc:
+                    best_acc = acc
+                    best_pred = pred.cpu()
+                    best_logits = logits.cpu()
 
-# 训练主循环
+        return best_acc, best_pred, y[mask].cpu(), best_logits
+
+    # Train/test 分别评估
+    train_acc, _, _, _ = evaluate(train_mask)
+    test_acc, y_pred_test, y_true_test, test_logits = evaluate(test_mask)
+
+    # F1
+    f1_micro = f1_score(y_true_test, y_pred_test, average='micro')
+    f1_macro = f1_score(y_true_test, y_pred_test, average='macro')
+
+    # AUC
+    y_prob = F.softmax(test_logits, dim=1)
+    y_true_onehot = F.one_hot(y_true_test, num_classes=num_classes)
+
+    try:
+        test_auc = roc_auc_score(y_true_onehot, y_prob, average='macro', multi_class='ovr')
+    except ValueError:
+        test_auc = float('nan')
+
+    return train_acc, test_acc, f1_micro, f1_macro, test_auc
+
 for epoch in range(1, 51):
     loss = train()
-    train_acc, test_acc = test()
-    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
+          f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
+          f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
+          f"Test AUC: {test_auc:.4f}")
 
 
-train_acc, test_acc = test()
-print(f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}")
+
 

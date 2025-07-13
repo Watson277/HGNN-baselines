@@ -4,10 +4,12 @@ from torch.nn import Linear
 from torch_geometric.datasets import HGBDataset
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
+from datasets.load_dblp import sample_train_mask_for_target_class
 
 def convert_dblp_to_homogeneous(proj_dim=128):
     dataset = HGBDataset(root='/tmp/HGB', name='DBLP')
     data = dataset[0]
+    data = sample_train_mask_for_target_class(data)
 
     # 如果某些节点没有特征（如 venue），构造 one-hot 或随机特征
     for node_type in data.node_types:
