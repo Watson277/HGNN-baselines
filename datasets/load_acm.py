@@ -16,7 +16,7 @@ def load_acm():
     return data
   
 
-def sample_train_mask_for_target_class(data: HeteroData, num_train_per_class=10, node_type='paper'):
+def sample_train_mask_for_target_class(data: HeteroData, num_train_per_class=20, node_type='paper'):
     y = data[node_type].y
     num_classes = int(y.max().item()) + 1
     train_idx = []

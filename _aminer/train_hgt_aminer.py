@@ -1,3 +1,9 @@
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import torch
 from datasets.load_aminer import load_aminer
 from models.hgt import HGT

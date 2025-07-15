@@ -1,22 +1,39 @@
+import sys
+import os
+# 获取当前文件的上一级目录
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
 import os.path as osp
 from typing import Dict, List, Union
-
 import torch
 import torch.nn.functional as F
 from torch import nn
-
 import torch_geometric
 import torch_geometric.transforms as T
-from torch_geometric.datasets import IMDB
 from torch_geometric.nn import HANConv
+from torch_geometric.datasets import IMDB
+from utils.homophily import generate_meta_path_edge_index_from_rel, generate_metapaths, compute_homophily
 
-path = osp.join(osp.dirname(osp.realpath(__file__)), '../../data/IMDB')
-metapaths = [[('movie', 'actor'), ('actor', 'movie')],
-             [('movie', 'director'), ('director', 'movie')]]
-transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edge_types=True,
-                           drop_unconnected_node_types=True)
-dataset = IMDB(path, transform=transform)
+metapaths = [
+            [('movie','actor'),('actor','movie')],
+            [('movie','director'),('director','movie')]
+]
+transform =T.AddMetaPaths(metapaths=metapaths, drop_orig_edge_types=True, drop_unconnected_node_types=True)
+# dataset =IMDB(root='/tmp/HGB',transform=transform)
+dataset =IMDB(root='/tmp/HGB')
 data = dataset[0]
+target_node_type = 'movie'
+
+# 计算同配率
+meta_paths = generate_metapaths(data.metadata(), center_type=target_node_type)
+for path in meta_paths:
+    try:
+        edge_index = generate_meta_path_edge_index_from_rel(data, path)
+        homophily = compute_homophily(edge_index, data[target_node_type].y)
+        print(f"{path}: 同配率 = {homophily:.4f}")
+    except Exception as e:
+        print(f"{path}: 计算失败 -> {e}")
 
 print(data)
 
@@ -43,52 +60,85 @@ else:
     device = torch.device('cpu')
 data, model = data.to(device), model.to(device)
 
-with torch.no_grad():  # Initialize lazy modules.
+
+
+
+# ✅ Lazy init
+with torch.no_grad():
     out = model(data.x_dict, data.edge_index_dict)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.001)
 
 
 def train() -> float:
     model.train()
     optimizer.zero_grad()
     out = model(data.x_dict, data.edge_index_dict)
-    mask = data['movie'].train_mask
-    loss = F.cross_entropy(out[mask], data['movie'].y[mask])
+    mask = data[target_node_type].train_mask
+    loss = F.cross_entropy(out[mask], data[target_node_type].y[mask])
     loss.backward()
     optimizer.step()
     return float(loss)
 
 
-@torch.no_grad()
-def test() -> List[float]:
-    model.eval()
-    pred = model(data.x_dict, data.edge_index_dict).argmax(dim=-1)
+from typing import Tuple, List
+from sklearn.metrics import f1_score, roc_auc_score
+import torch.nn.functional as F
 
-    accs = []
+@torch.no_grad()
+def test() -> Tuple[List[float], List[float], List[float], List[float]]:
+    model.eval()
+    out = model(data.x_dict, data.edge_index_dict)  # shape: [num_nodes, num_classes]
+    pred = out.argmax(dim=-1)
+    y_true = data[target_node_type].y
+
+    accs, aucs, f1_micros, f1_macros = [], [], [], []
     for split in ['train_mask', 'val_mask', 'test_mask']:
-        mask = data['movie'][split]
-        acc = (pred[mask] == data['movie'].y[mask]).sum() / mask.sum()
+        mask = data[target_node_type][split]
+
+        acc = (pred[mask] == y_true[mask]).sum() / mask.sum()
         accs.append(float(acc))
-    return accs
+
+        try:
+            probs = F.softmax(out[mask], dim=1)
+            y_onehot = F.one_hot(y_true[mask], num_classes=out.size(-1)).cpu()
+            auc = roc_auc_score(y_onehot, probs.cpu(), average='macro', multi_class='ovo')
+        except ValueError:
+            auc = 0.0
+        aucs.append(auc)
+
+        # F1-micro & F1-macro
+        f1_micro = f1_score(y_true[mask].cpu(), pred[mask].cpu(), average='micro', zero_division=0)
+        f1_macro = f1_score(y_true[mask].cpu(), pred[mask].cpu(), average='macro', zero_division=0)
+        f1_micros.append(f1_micro)
+        f1_macros.append(f1_macro)
+
+    return accs, aucs, f1_micros, f1_macros  # 分别为 [train, val, test] 上的四个指标列表
+
 
 
 best_val_acc = 0
 start_patience = patience = 100
-for epoch in range(1, 200):
 
+for epoch in range(1, 101):
     loss = train()
-    train_acc, val_acc, test_acc = test()
-    print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, '
-          f'Val: {val_acc:.4f}, Test: {test_acc:.4f}')
+    accs, aucs, f1_micros, f1_macros = test()
+    train_acc, val_acc, test_acc = accs
+    train_auc, val_auc, test_auc = aucs
+    train_f1_micro, val_f1_micro, test_f1_micro = f1_micros
+    train_f1_macro, val_f1_macro, test_f1_macro = f1_macros
+
+    print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, '
+          f'Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}, Test Acc: {test_acc:.4f}, '
+          f'Test AUC: {test_auc:.4f}, '
+          f'Test F1 Micro: {test_f1_micro:.4f}, Test F1 Macro: {test_f1_macro:.4f}')
 
     if best_val_acc <= val_acc:
-        patience = start_patience
         best_val_acc = val_acc
+        patience = start_patience
     else:
         patience -= 1
 
     if patience <= 0:
-        print('Stopping training as validation accuracy did not improve '
-              f'for {start_patience} epochs')
+        print(f"Early stopping at epoch {epoch}")
         break

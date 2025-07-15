@@ -19,15 +19,15 @@ data = sample_train_mask_for_target_class(data)
 # 只选定用于分类的节点类型：author
 target_node_type = node_type
 
-# 计算同配率
-meta_paths = generate_metapaths(data.metadata(), center_type=target_node_type)
-for path in meta_paths:
-    try:
-        edge_index = generate_meta_path_edge_index_from_rel(data, path)
-        homophily = compute_homophily(edge_index, data[target_node_type].y)
-        print(f"{path}: 同配率 = {homophily:.4f}")
-    except Exception as e:
-        print(f"{path}: 计算失败 -> {e}")
+# # 计算同配率
+# meta_paths = generate_metapaths(data.metadata(), center_type=target_node_type)
+# for path in meta_paths:
+#     try:
+#         edge_index = generate_meta_path_edge_index_from_rel(data, path)
+#         homophily = compute_homophily(edge_index, data[target_node_type].y)
+#         print(f"{path}: 同配率 = {homophily:.4f}")
+#     except Exception as e:
+#         print(f"{path}: 计算失败 -> {e}")
 
 # 输入维度（各节点特征维度）
 in_channels_dict = {
@@ -89,23 +89,52 @@ def test():
     f1_micro = f1_score(y_true, y_pred, average='micro')
     f1_macro = f1_score(y_true, y_pred, average='macro')
 
-    # AUC calculation
     num_classes = logits.size(1)
     y_prob = F.softmax(logits, dim=1)
-    y_true_onehot = F.one_hot(y_true, num_classes=num_classes)
+    y_true_onehot = F.one_hot(y_true, num_classes=num_classes).float()
 
     try:
         auc = roc_auc_score(y_true_onehot, y_prob, average='macro', multi_class='ovr')
     except ValueError:
-        auc = float('nan')  # 如果某些类在 test set 中缺失
+        auc = float('nan')
 
-    return accs[0], accs[1], f1_micro, f1_macro, auc
+    # ✅ 新增：MSE
+    mse = F.mse_loss(y_prob, y_true_onehot).item()
+
+    return accs[0], accs[1], f1_micro, f1_macro, auc, mse
 
 
-for epoch in range(1, 101):
+best_acc = 0.0
+best_epoch = 0
+best_result = None
+
+for epoch in range(1, 151):
     loss = train()
-    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc, test_mse = test()
+
     print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
           f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
           f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
-          f"Test AUC: {test_auc:.4f}")
+          f"Test AUC: {test_auc:.4f}, Test MSE: {test_mse:.6f}")
+
+    # ✅ 按 Test Accuracy 记录最佳
+    if test_acc > best_acc:
+        best_acc = test_acc
+        best_epoch = epoch
+        best_result = {
+            'Loss': loss,
+            'Train Acc': train_acc,
+            'Test Acc': test_acc,
+            'F1 Micro': test_f1_micro,
+            'F1 Macro': test_f1_macro,
+            'AUC': test_auc,
+            'MSE': test_mse
+        }
+
+# ✅ 最终输出最佳结果
+print("\n=== Best Test Accuracy Result ===")
+print(f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
+      f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
+      f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
+      f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
+

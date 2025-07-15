@@ -21,10 +21,10 @@ from utils.dataset_split import split_paper_nodes_by_class
 metapaths = [
     # [('paper', 'cite', 'paper'), ('paper', 'cite', 'paper')],
     # [('paper', 'cite', 'paper'), ('paper', 'ref', 'paper')],
-    [('paper', 'ref', 'paper'), ('paper', 'cite', 'paper')],
+    # [('paper', 'ref', 'paper'), ('paper', 'cite', 'paper')],
     # [('paper', 'ref', 'paper'), ('paper', 'ref', 'paper')],
     # [('paper', 'to', 'author'), ('author', 'to', 'paper')],
-    # [('paper', 'to', 'subject'), ('subject', 'to', 'paper')]
+    [('paper', 'to', 'subject'), ('subject', 'to', 'paper')]
 ]
 target_node_type = 'paper'
 
@@ -34,7 +34,7 @@ print(metapaths)
 transform = T.AddMetaPaths(metapaths=metapaths, drop_orig_edge_types=False)
 dataset = HGBDataset(root='/tmp/HGB', name='ACM', transform=transform)
 data = dataset[0]
-split_paper_nodes_by_class(data, train_per_class=20, val_per_class=30, target_node_type=target_node_type)
+split_paper_nodes_by_class(data, train_per_class=200, val_per_class=30, target_node_type=target_node_type)
 print(data)
 
 # ✅ 特征补全（ACM 数据集中 term 节点无 x）
@@ -91,46 +91,57 @@ def train() -> float:
     return float(loss)
 
 
-from sklearn.metrics import roc_auc_score
+from typing import Tuple, List
+from sklearn.metrics import f1_score, roc_auc_score
 import torch.nn.functional as F
-from typing import List, Tuple
 
 @torch.no_grad()
-def test() -> Tuple[List[float], List[float]]:
+def test() -> Tuple[List[float], List[float], List[float], List[float]]:
     model.eval()
     out = model(data.x_dict, data.edge_index_dict)  # shape: [num_nodes, num_classes]
     pred = out.argmax(dim=-1)
     y_true = data[target_node_type].y
 
-    accs, aucs = [], []
+    accs, aucs, f1_micros, f1_macros = [], [], [], []
     for split in ['train_mask', 'val_mask', 'test_mask']:
         mask = data[target_node_type][split]
+
         acc = (pred[mask] == y_true[mask]).sum() / mask.sum()
         accs.append(float(acc))
 
-        # 多分类 AUC，使用 one-hot 和 softmax 概率
         try:
             probs = F.softmax(out[mask], dim=1)
             y_onehot = F.one_hot(y_true[mask], num_classes=out.size(-1)).cpu()
             auc = roc_auc_score(y_onehot, probs.cpu(), average='macro', multi_class='ovo')
         except ValueError:
-            auc = 0.0  # 如果某个 split 中类别不全（例如 val/test 集中某一类）
+            auc = 0.0
         aucs.append(auc)
-    
-    return accs, aucs  # ([train_acc, val_acc, test_acc], [train_auc, val_auc, test_auc])
+
+        # F1-micro & F1-macro
+        f1_micro = f1_score(y_true[mask].cpu(), pred[mask].cpu(), average='micro', zero_division=0)
+        f1_macro = f1_score(y_true[mask].cpu(), pred[mask].cpu(), average='macro', zero_division=0)
+        f1_micros.append(f1_micro)
+        f1_macros.append(f1_macro)
+
+    return accs, aucs, f1_micros, f1_macros  # 分别为 [train, val, test] 上的四个指标列表
+
 
 
 best_val_acc = 0
 start_patience = patience = 100
-for epoch in range(1, 201):
+
+for epoch in range(1, 101):
     loss = train()
-    accs, aucs = test()
+    accs, aucs, f1_micros, f1_macros = test()
     train_acc, val_acc, test_acc = accs
     train_auc, val_auc, test_auc = aucs
+    train_f1_micro, val_f1_micro, test_f1_micro = f1_micros
+    train_f1_macro, val_f1_macro, test_f1_macro = f1_macros
 
     print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, '
           f'Train Acc: {train_acc:.4f}, Val Acc: {val_acc:.4f}, Test Acc: {test_acc:.4f}, '
-          f'Test AUC: {test_auc:.4f}')
+          f'Test AUC: {test_auc:.4f}, '
+          f'Test F1 Micro: {test_f1_micro:.4f}, Test F1 Macro: {test_f1_macro:.4f}')
 
     if best_val_acc <= val_acc:
         best_val_acc = val_acc
@@ -141,4 +152,5 @@ for epoch in range(1, 201):
     if patience <= 0:
         print(f"Early stopping at epoch {epoch}")
         break
+
 

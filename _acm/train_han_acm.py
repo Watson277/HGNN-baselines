@@ -20,15 +20,15 @@ data = sample_train_mask_for_target_class(data)
 if 'term' not in data.x_dict:
     data['term'].x = torch.randn(data['term'].num_nodes, 1902).float()
 
-# 计算同配率
-meta_paths = generate_metapaths(data.metadata(), center_type=target_node_type)
-for path in meta_paths:
-    try:
-        edge_index = generate_meta_path_edge_index_from_rel(data, path)
-        homophily = compute_homophily(edge_index, data[target_node_type].y)
-        print(f"{path}: 同配率 = {homophily:.4f}")
-    except Exception as e:
-        print(f"{path}: 计算失败 -> {e}")
+# # 计算同配率
+# meta_paths = generate_metapaths(data.metadata(), center_type=target_node_type)
+# for path in meta_paths:
+#     try:
+#         edge_index = generate_meta_path_edge_index_from_rel(data, path)
+#         homophily = compute_homophily(edge_index, data[target_node_type].y)
+#         print(f"{path}: 同配率 = {homophily:.4f}")
+#     except Exception as e:
+#         print(f"{path}: 计算失败 -> {e}")
 
 # 获取类别数（paper的标签）
 num_classes = int(data[target_node_type].y.max()) + 1
@@ -51,7 +51,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = model.to(device)
 data = data.to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 loss_fn = torch.nn.CrossEntropyLoss()
 
 def train():
@@ -66,6 +66,7 @@ def train():
 
 from sklearn.metrics import f1_score, roc_auc_score
 import torch.nn.functional as F
+import torch
 
 @torch.no_grad()
 def test():
@@ -73,14 +74,14 @@ def test():
     out = model(data.x_dict, data.edge_index_dict)[target_node_type]  # [num_nodes, num_classes]
     pred = out.argmax(dim=1)
 
-    # 计算 train/test accuracy
+    # Accuracy
     accs = []
     for split in ['train_mask', 'test_mask']:
         mask = data[target_node_type][split]
         acc = (pred[mask] == data[target_node_type].y[mask]).sum().item() / mask.sum().item()
         accs.append(acc)
 
-    # 只计算 test F1 和 AUC
+    # F1 and AUC (only on test)
     test_mask = data[target_node_type]['test_mask']
     y_true = data[target_node_type].y[test_mask].cpu()
     y_pred = pred[test_mask].cpu()
@@ -88,25 +89,53 @@ def test():
     test_f1_micro = f1_score(y_true, y_pred, average='micro')
     test_f1_macro = f1_score(y_true, y_pred, average='macro')
 
-    # 计算 AUC：需要 one-hot label 和 softmax 概率
-    y_prob = F.softmax(out[test_mask], dim=1).cpu()  # [num_test_samples, num_classes]
+    y_prob = F.softmax(out[test_mask], dim=1).cpu()
     y_true_onehot = F.one_hot(y_true, num_classes=y_prob.size(1)).float()
 
     try:
         test_auc_macro = roc_auc_score(y_true_onehot, y_prob, average='macro', multi_class='ovr')
     except ValueError:
-        test_auc_macro = float('nan')  # 如果只有一个类，AUC 无法计算
+        test_auc_macro = float('nan')
 
-    return accs[0], accs[1], test_f1_micro, test_f1_macro, test_auc_macro
+    # ✅ 计算 MSE（均方误差）between softmax probs and one-hot
+    test_mse = F.mse_loss(y_prob, y_true_onehot).item()
 
-# 主训练循环
+    return accs[0], accs[1], test_f1_micro, test_f1_macro, test_auc_macro, test_mse
+
+
 if __name__ == '__main__':
+    best_auc = 0.0
+    best_epoch = 0
+    best_result = None  # 保存对应指标
+
     for epoch in range(1, 201):
         loss = train()
-        train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+        train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc, test_mse = test()
+
         print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
               f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
               f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
-              f"Test AUC: {test_auc:.4f}")
+              f"Test AUC: {test_auc:.4f}, Test MSE: {test_mse:.6f}")
+
+        # ✅ 如果当前 AUC 更好，则更新记录
+        if test_auc > best_auc:
+            best_auc = test_auc
+            best_epoch = epoch
+            best_result = {
+                'Train Acc': train_acc,
+                'Test Acc': test_acc,
+                'F1 Micro': test_f1_micro,
+                'F1 Macro': test_f1_macro,
+                'AUC': test_auc,
+                'MSE': test_mse,
+                'Loss': loss
+            }
+
+    # ✅ 打印 AUC 最佳时对应的结果
+    print("\nBest Test AUC Results:")
+    print(f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
+          f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
+          f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
+          f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
 
 

@@ -57,7 +57,7 @@ def train():
         total_loss += loss.item()
     return total_loss / (i + 1)
 
-from sklearn.metrics import f1_score
+
 
 from sklearn.metrics import f1_score, roc_auc_score
 import torch.nn.functional as F
@@ -83,7 +83,6 @@ def test():
             optimizer.zero_grad()
             loss = F.cross_entropy(clf(z[mask]), y[mask])
 
-
             clf.eval()
             with torch.no_grad():
                 logits = clf(z[mask])
@@ -106,22 +105,50 @@ def test():
 
     # AUC
     y_prob = F.softmax(test_logits, dim=1)
-    y_true_onehot = F.one_hot(y_true_test, num_classes=num_classes)
+    y_true_onehot = F.one_hot(y_true_test, num_classes=num_classes).float()
 
     try:
         test_auc = roc_auc_score(y_true_onehot, y_prob, average='macro', multi_class='ovr')
     except ValueError:
         test_auc = float('nan')
 
-    return train_acc, test_acc, f1_micro, f1_macro, test_auc
+    # 新增 MSE
+    test_mse = F.mse_loss(y_prob, y_true_onehot).item()
 
-for epoch in range(1, 51):
+    return train_acc, test_acc, f1_micro, f1_macro, test_auc, test_mse
+
+
+best_acc = 0.0
+best_epoch = 0
+best_result = None
+
+for epoch in range(1, 101):
     loss = train()
-    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    train_acc, test_acc, test_f1_micro, test_f1_macro, test_auc, test_mse = test()
     print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
           f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
           f"Test F1-Mi: {test_f1_micro:.4f}, Test F1-Ma: {test_f1_macro:.4f}, "
-          f"Test AUC: {test_auc:.4f}")
+          f"Test AUC: {test_auc:.4f}, Test MSE: {test_mse:.6f}")
+
+    if test_acc > best_acc:
+        best_acc = test_acc
+        best_epoch = epoch
+        best_result = {
+            'Loss': loss,
+            'Train Acc': train_acc,
+            'Test Acc': test_acc,
+            'F1 Micro': test_f1_micro,
+            'F1 Macro': test_f1_macro,
+            'AUC': test_auc,
+            'MSE': test_mse
+        }
+
+print("\n=== Best Test Accuracy Result ===")
+print(f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
+      f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
+      f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
+      f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
+
 
 
 

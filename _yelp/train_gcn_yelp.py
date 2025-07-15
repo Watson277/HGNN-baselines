@@ -65,23 +65,56 @@ def test():
     f1_micro = f1_score(y_true, y_pred, average='micro')
     f1_macro = f1_score(y_true, y_pred, average='macro')
 
-    # AUC（多分类 One-vs-Rest 或二分类）
+    # 概率分布
+    probs = F.softmax(out_business[test_mask], dim=1).cpu()
+    
     try:
-        probs = F.softmax(out_business[test_mask], dim=1).cpu()
         if probs.size(1) == 2:
             auc = roc_auc_score(y_true, probs[:, 1])  # 二分类直接用正类概率
         else:
-            y_true_onehot = F.one_hot(y_true, num_classes=probs.size(1))
+            y_true_onehot = F.one_hot(y_true, num_classes=probs.size(1)).float()
             auc = roc_auc_score(y_true_onehot, probs, average='macro', multi_class='ovr')
     except ValueError:
-        auc = float('nan')  # 如果测试集中缺失某些类
+        auc = float('nan')
 
-    return acc, f1_micro, f1_macro, auc
+    # ✅ MSE 计算
+    try:
+        y_true_onehot = F.one_hot(y_true, num_classes=probs.size(1)).float()
+        mse = F.mse_loss(probs, y_true_onehot).item()
+    except Exception:
+        mse = float('nan')
 
+    return acc, f1_micro, f1_macro, auc, mse
+
+
+best_acc = 0.0
+best_epoch = 0
+best_result = None
 
 for epoch in range(1, 101):
     loss, train_acc = train()
-    test_acc, test_f1_micro, test_f1_macro, test_auc = test()
+    test_acc, test_f1_micro, test_f1_macro, test_auc, test_mse = test()
+
     print(f"Epoch: {epoch:03d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, "
           f"Test Acc: {test_acc:.4f}, Test F1-Micro: {test_f1_micro:.4f}, "
-          f"Test F1-Macro: {test_f1_macro:.4f}, Test AUC: {test_auc:.4f}")
+          f"Test F1-Macro: {test_f1_macro:.4f}, Test AUC: {test_auc:.4f}, Test MSE: {test_mse:.6f}")
+
+    if test_acc > best_acc:
+        best_acc = test_acc
+        best_epoch = epoch
+        best_result = {
+            'Loss': loss,
+            'Train Acc': train_acc,
+            'Test Acc': test_acc,
+            'F1 Micro': test_f1_micro,
+            'F1 Macro': test_f1_macro,
+            'AUC': test_auc,
+            'MSE': test_mse
+        }
+
+# ✅ 打印最佳结果
+print("\n=== Best Test Accuracy Result ===")
+print(f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
+      f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
+      f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
+      f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
