@@ -1,0 +1,206 @@
+ACM:
+HeteroData(
+  paper={
+    x=[3025, 1902],
+    y=[3025],
+    train_mask=[3025],
+    test_mask=[3025],
+  },
+  author={ x=[5959, 1902] },
+  subject={ x=[56, 1902] },
+  term={
+    num_nodes=1902,
+    x=[1902, 1902],
+  },
+  (paper, cite, paper)={ edge_index=[2, 5343] },
+  (paper, ref, paper)={ edge_index=[2, 5343] },
+  (paper, to, author)={ edge_index=[2, 9949] },
+  (author, to, paper)={ edge_index=[2, 9949] },
+  (paper, to, subject)={ edge_index=[2, 3025] },
+  (subject, to, paper)={ edge_index=[2, 3025] },
+  (paper, to, term)={ edge_index=[2, 255619] },
+  (term, to, paper)={ edge_index=[2, 255619] }
+)
+
+DBLP:
+HeteroData(
+  author={
+    x=[4057, 334],
+    y=[4057],
+    train_mask=[4057],
+    test_mask=[4057],
+  },
+  paper={ x=[14328, 4231] },
+  term={ x=[7723, 50] },
+  venue={
+    num_nodes=20,
+    x=[20, 20],
+  },
+  (author, to, paper)={ edge_index=[2, 19645] },
+  (paper, to, term)={ edge_index=[2, 85810] },
+  (paper, to, venue)={ edge_index=[2, 14328] },
+  (paper, to, author)={ edge_index=[2, 19645] },
+  (term, to, paper)={ edge_index=[2, 85810] },
+  (venue, to, paper)={ edge_index=[2, 14328] }
+)
+
+freebase:
+HeteroData(
+  book={
+    num_nodes=40402,
+    y=[40402],
+    train_mask=[40402],
+    test_mask=[40402],
+    x=[40402, 128],
+  },
+  film={
+    num_nodes=19427,
+    x=[19427, 128],
+  },
+  music={
+    num_nodes=82351,
+    x=[82351, 128],
+  },
+  sports={
+    num_nodes=1025,
+    x=[1025, 128],
+  },
+  people={
+    num_nodes=17641,
+    x=[17641, 128],
+  },
+  location={
+    num_nodes=9368,
+    x=[9368, 128],
+  },
+  organization={
+    num_nodes=2731,
+    x=[2731, 128],
+  },
+  business={
+    num_nodes=7153,
+    x=[7153, 128],
+  },
+  (book, and, book)={ edge_index=[2, 202674] },
+  (book, to, film)={ edge_index=[2, 38299] },
+  (book, on, sports)={ edge_index=[2, 6615] },
+  (book, on, location)={ edge_index=[2, 26921] },
+  (book, about, organization)={ edge_index=[2, 21900] },
+  (film, and, film)={ edge_index=[2, 87838] },
+  (music, in, book)={ edge_index=[2, 31486] },
+  (music, in, film)={ edge_index=[2, 11291] },
+  (music, and, music)={ edge_index=[2, 283670] },
+  (music, for, sports)={ edge_index=[2, 8975] },
+  (music, on, location)={ edge_index=[2, 42915] },
+  (sports, in, film)={ edge_index=[2, 6763] },
+  (sports, and, sports)={ edge_index=[2, 1290] },
+  (sports, on, location)={ edge_index=[2, 656] },
+  (people, to, book)={ edge_index=[2, 35587] },
+  (people, to, film)={ edge_index=[2, 17604] },
+  (people, to, music)={ edge_index=[2, 10948] },
+  (people, to, sports)={ edge_index=[2, 14850] },
+  (people, and, people)={ edge_index=[2, 22813] },
+  (people, on, location)={ edge_index=[2, 15134] },
+  (people, in, organization)={ edge_index=[2, 2215] },
+  (people, in, business)={ edge_index=[2, 5378] },
+  (location, in, film)={ edge_index=[2, 21299] },
+  (location, and, location)={ edge_index=[2, 47817] },
+  (organization, in, film)={ edge_index=[2, 13128] },
+  (organization, to, music)={ edge_index=[2, 10702] },
+  (organization, to, sports)={ edge_index=[2, 559] },
+  (organization, on, location)={ edge_index=[2, 2696] },
+  (organization, and, organization)={ edge_index=[2, 1101] },
+  (organization, for, business)={ edge_index=[2, 1073] },
+  (business, about, book)={ edge_index=[2, 18625] },
+  (business, about, film)={ edge_index=[2, 8397] },
+  (business, about, music)={ edge_index=[2, 24764] },
+  (business, about, sports)={ edge_index=[2, 610] },
+  (business, on, location)={ edge_index=[2, 6647] },
+  (business, and, business)={ edge_index=[2, 4448] }
+)
+
+Yelp:
+HeteroData(
+  business={
+    x=[50000, 64],
+    y=[50000],
+    train_mask=[50000],
+    val_mask=[50000],
+    test_mask=[50000],
+  },
+  user={ x=[50000, 64] },
+  review={ x=[50000, 64] },
+  tip={ x=[50000, 64] },
+  (user, writes, review)={ edge_index=[2, 1296] },
+  (review, about, business)={ edge_index=[2, 16445] },
+  (user, friends, user)={ edge_index=[2, 8984] },
+  (user, tips, tip)={ edge_index=[2, 1242] },
+  (tip, about, business)={ edge_index=[2, 16605] }
+)
+
+AMiner:
+HeteroData(
+  author={
+    y=[246678],
+    y_index=[246678],
+    num_nodes=1693531,
+    x=[1693531, 128],
+    train_mask=[1693531],
+    val_mask=[1693531],
+    test_mask=[1693531],
+  },
+  venue={
+    y=[134],
+    y_index=[134],
+    num_nodes=3883,
+    x=[3883, 128],
+    train_mask=[3883],
+    val_mask=[3883],
+    test_mask=[3883],
+  },
+  paper={
+    num_nodes=3194405,
+    x=[3194405, 128],
+  },
+  (paper, written_by, author)={ edge_index=[2, 9323605] },
+  (author, writes, paper)={ edge_index=[2, 9323605] },
+  (paper, published_in, venue)={ edge_index=[2, 3194405] },
+  (venue, publishes, paper)={ edge_index=[2, 3194405] }
+)
+HeteroData(
+  author={
+    y=[246678],
+    y_index=[246678],
+    num_nodes=1693531,
+    x=[1693531, 128],
+    train_mask=[1693531],
+    val_mask=[1693531],
+    test_mask=[1693531],
+  },
+  venue={
+    y=[134],
+    y_index=[134],
+    num_nodes=3883,
+    x=[3883, 128],
+    train_mask=[3883],
+    val_mask=[3883],
+    test_mask=[3883],
+  },
+  paper={
+    num_nodes=3194405,
+    x=[3194405, 128],
+  },
+  (paper, written_by, author)={ edge_index=[2, 9323605] },
+  (author, writes, paper)={ edge_index=[2, 9323605] },
+  (paper, published_in, venue)={ edge_index=[2, 3194405] },
+  (venue, publishes, paper)={ edge_index=[2, 3194405] }
+)
+
+
+
+
+
+
+
+
+

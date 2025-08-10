@@ -1,0 +1,17 @@
+
+Epoch: 041, Loss: 0.8982, Train Acc: 0.7333, Test Acc: 0.7158, F1 Micro: 0.7158, F1 Macro: 0.7135, AUC: 0.8832, MSE: 0.131772
+Epoch: 100, Loss: 0.3255, Train Acc: 0.9167, Test Acc: 0.7446, F1 Micro: 0.7446, F1 Macro: 0.7378, AUC: 0.8938, MSE: 0.128375
+Epoch: 093, Loss: 0.2874, Train Acc: 0.8833, Test Acc: 0.7318, F1 Micro: 0.7318, F1 Macro: 0.7283, AUC: 0.8905, MSE: 0.131674
+Epoch: 057, Loss: 0.8418, Train Acc: 0.6167, Test Acc: 0.6190, F1 Micro: 0.6190, F1 Macro: 0.5571, AUC: 0.8679, MSE: 0.189927
+Epoch: 091, Loss: 0.2671, Train Acc: 0.9333, Test Acc: 0.7852, F1 Micro: 0.7852, F1 Macro: 0.7822, AUC: 0.9286, MSE: 0.107522
+Epoch: 044, Loss: 0.8874, Train Acc: 0.5500, Test Acc: 0.5779, F1 Micro: 0.5779, F1 Macro: 0.5568, AUC: 0.8961, MSE: 0.176044
+Epoch: 091, Loss: 0.3339, Train Acc: 0.9000, Test Acc: 0.7219, F1 Micro: 0.7219, F1 Macro: 0.7208, AUC: 0.9105, MSE: 0.123679
+Epoch: 007, Loss: 1.0778, Train Acc: 0.3500, Test Acc: 0.7517, F1 Micro: 0.7517, F1 Macro: 0.7469, AUC: 0.9225, MSE: 0.217732
+Epoch: 062, Loss: 0.9128, Train Acc: 0.8167, Test Acc: 0.6775, F1 Micro: 0.6775, F1 Macro: 0.6211, AUC: 0.8945, MSE: 0.189491
+Epoch: 100, Loss: 0.6646, Train Acc: 0.7833, Test Acc: 0.5699, F1 Micro: 0.5699, F1 Macro: 0.5074, AUC: 0.9001, MSE: 0.161838
+Epoch: 088, Loss: 0.5070, Train Acc: 0.8500, Test Acc: 0.6511, F1 Micro: 0.6511, F1 Macro: 0.6444, AUC: 0.8905, MSE: 0.150447
+Epoch: 003, Loss: 1.1008, Train Acc: 0.3333, Test Acc: 0.3196, F1 Micro: 0.3196, F1 Macro: 0.1615, AUC: 0.9044, MSE: 0.228676
+Epoch: 007, Loss: 1.0544, Train Acc: 0.4167, Test Acc: 0.3196, F1 Micro: 0.3196, F1 Macro: 0.1615, AUC: 0.9210, MSE: 0.219134
+Epoch: 076, Loss: 0.6217, Train Acc: 0.8167, Test Acc: 0.7734, F1 Micro: 0.7734, F1 Macro: 0.7773, AUC: 0.9017, MSE: 0.135489
+Epoch: 046, Loss: 0.6377, Train Acc: 0.7667, Test Acc: 0.6917, F1 Micro: 0.6917, F1 Macro: 0.6896, AUC: 0.8876, MSE: 0.153191
+Epoch: 060, Loss: 1.2121, Train Acc: 0.6667, Test Acc: 0.5807, F1 Micro: 0.5807, F1 Macro: 0.5609, AUC: 0.8848, MSE: 0.187328

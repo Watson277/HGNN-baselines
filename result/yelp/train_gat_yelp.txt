@@ -1,0 +1,15 @@
+Epoch: 066, Loss: 2.6122, Train Acc: 0.1500, Test Acc: 0.4545, F1 Micro: 0.4545, F1 Macro: 0.0971, AUC: 0.6070, MSE: 0.085979
+Epoch: 008, Loss: 9.4219, Train Acc: 0.1000, Test Acc: 0.4245, F1 Micro: 0.4245, F1 Macro: 0.0937, AUC: 0.5402, MSE: 0.078022
+Epoch: 086, Loss: 2.7079, Train Acc: 0.1450, Test Acc: 0.5130, F1 Micro: 0.5130, F1 Macro: 0.1055, AUC: 0.6074, MSE: 0.079652
+Epoch: 002, Loss: 16.0289, Train Acc: 0.1050, Test Acc: 0.5316, F1 Micro: 0.5316, F1 Macro: 0.0901, AUC: 0.5241, MSE: 0.082560
+Epoch: 046, Loss: 3.1502, Train Acc: 0.1150, Test Acc: 0.4006, F1 Micro: 0.4006, F1 Macro: 0.1052, AUC: 0.5913, MSE: 0.082376
+Epoch: 009, Loss: 6.0368, Train Acc: 0.1100, Test Acc: 0.4978, F1 Micro: 0.4978, F1 Macro: 0.1088, AUC: 0.5262, MSE: 0.078233
+Epoch: 007, Loss: 9.6438, Train Acc: 0.1300, Test Acc: 0.4803, F1 Micro: 0.4803, F1 Macro: 0.0856, AUC: 0.5809, MSE: 0.088394
+Epoch: 002, Loss: 19.3895, Train Acc: 0.1100, Test Acc: 0.4570, F1 Micro: 0.4570, F1 Macro: 0.0785, AUC: 0.5095, MSE: 0.089977
+Epoch: 033, Loss: 3.6516, Train Acc: 0.1150, Test Acc: 0.4937, F1 Micro: 0.4937, F1 Macro: 0.1044, AUC: 0.5919, MSE: 0.078027
+Epoch: 019, Loss: 5.3996, Train Acc: 0.0950, Test Acc: 0.5124, F1 Micro: 0.5124, F1 Macro: 0.0816, AUC: 0.5396, MSE: 0.086187
+Epoch: 006, Loss: 7.7215, Train Acc: 0.1000, Test Acc: 0.4765, F1 Micro: 0.4765, F1 Macro: 0.1025, AUC: 0.5469, MSE: 0.088542
+Epoch: 084, Loss: 2.5293, Train Acc: 0.1200, Test Acc: 0.4636, F1 Micro: 0.4636, F1 Macro: 0.0852, AUC: 0.5784, MSE: 0.077784
+Epoch: 001, Loss: 12.5543, Train Acc: 0.1150, Test Acc: 0.3545, F1 Micro: 0.3545, F1 Macro: 0.0888, AUC: 0.5458, MSE: 0.088360
+Epoch: 022, Loss: 4.1392, Train Acc: 0.0750, Test Acc: 0.2471, F1 Micro: 0.2471, F1 Macro: 0.0774, AUC: 0.5425, MSE: 0.090363
+

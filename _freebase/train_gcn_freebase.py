@@ -111,3 +111,19 @@ print(f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
       f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
       f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
       f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
+
+log = (f"Epoch: {best_epoch:03d}, Loss: {best_result['Loss']:.4f}, "
+      f"Train Acc: {best_result['Train Acc']:.4f}, Test Acc: {best_result['Test Acc']:.4f}, "
+      f"F1 Micro: {best_result['F1 Micro']:.4f}, F1 Macro: {best_result['F1 Macro']:.4f}, "
+      f"AUC: {best_result['AUC']:.4f}, MSE: {best_result['MSE']:.6f}")
+
+# 获取当前脚本名并构造同名 txt 文件
+py_file = sys.argv[0]
+base_name = os.path.splitext(os.path.basename(py_file))[0]
+txt_filename = "./result/freebase/" + base_name + ".txt"
+print(txt_filename)
+print(log)
+with open(txt_filename, 'a', encoding='utf-8') as f:
+    print("write")
+    f.write(log)
+    f.write("\n")

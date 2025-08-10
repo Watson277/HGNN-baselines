@@ -1,0 +1,16 @@
+Epoch: 047, Loss: 0.6696, Train Acc: 0.8286, Test Acc: 0.3353, F1 Micro: 0.3353, F1 Macro: 0.2700, AUC: 0.6226, MSE: 0.131632
+Epoch: 067, Loss: 0.3893, Train Acc: 0.9000, Test Acc: 0.3391, F1 Micro: 0.3391, F1 Macro: 0.2741, AUC: 0.6510, MSE: 0.144336
+Epoch: 072, Loss: 0.3879, Train Acc: 0.9143, Test Acc: 0.3218, F1 Micro: 0.3218, F1 Macro: 0.2695, AUC: 0.6432, MSE: 0.155284
+Epoch: 060, Loss: 0.2926, Train Acc: 0.9429, Test Acc: 0.3109, F1 Micro: 0.3109, F1 Macro: 0.2635, AUC: 0.6364, MSE: 0.156540
+Epoch: 009, Loss: 1.7908, Train Acc: 0.3286, Test Acc: 0.3757, F1 Micro: 0.3757, F1 Macro: 0.1283, AUC: 0.6032, MSE: 0.117984
+Epoch: 014, Loss: 1.7176, Train Acc: 0.4500, Test Acc: 0.3466, F1 Micro: 0.3466, F1 Macro: 0.1660, AUC: 0.6109, MSE: 0.117766
+Epoch: 013, Loss: 1.6733, Train Acc: 0.4357, Test Acc: 0.3962, F1 Micro: 0.3962, F1 Macro: 0.1772, AUC: 0.5713, MSE: 0.115384
+Epoch: 169, Loss: 0.7484, Train Acc: 0.8214, Test Acc: 0.3339, F1 Micro: 0.3339, F1 Macro: 0.2407, AUC: 0.6135, MSE: 0.133936
+Epoch: 016, Loss: 1.4322, Train Acc: 0.5071, Test Acc: 0.3475, F1 Micro: 0.3475, F1 Macro: 0.2152, AUC: 0.6160, MSE: 0.113862
+Epoch: 008, Loss: 1.8526, Train Acc: 0.3214, Test Acc: 0.3218, F1 Micro: 0.3218, F1 Macro: 0.1353, AUC: 0.6330, MSE: 0.116456
+Epoch: 026, Loss: 0.9797, Train Acc: 0.7214, Test Acc: 0.3542, F1 Micro: 0.3542, F1 Macro: 0.2707, AUC: 0.6480, MSE: 0.119313
+Epoch: 081, Loss: 0.8126, Train Acc: 0.7143, Test Acc: 0.2935, F1 Micro: 0.2935, F1 Macro: 0.2071, AUC: 0.6191, MSE: 0.129959
+Epoch: 001, Loss: 1.9758, Train Acc: 0.1429, Test Acc: 0.4932, F1 Micro: 0.4932, F1 Macro: 0.0944, AUC: 0.6050, MSE: 0.117967
+Epoch: 015, Loss: 1.5945, Train Acc: 0.4714, Test Acc: 0.3373, F1 Micro: 0.3373, F1 Macro: 0.1826, AUC: 0.6199, MSE: 0.117593
+Epoch: 107, Loss: 0.6088, Train Acc: 0.8714, Test Acc: 0.3256, F1 Micro: 0.3256, F1 Macro: 0.2582, AUC: 0.6486, MSE: 0.142697
+Epoch: 167, Loss: 0.1580, Train Acc: 0.9643, Test Acc: 0.3466, F1 Micro: 0.3466, F1 Macro: 0.2946, AUC: 0.6303, MSE: 0.155234

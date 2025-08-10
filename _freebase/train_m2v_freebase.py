@@ -107,5 +107,18 @@ for epoch in range(1, 51):
           f"Test F1-Micro: {test_f1_micro:.4f}, Test F1-Macro: {test_f1_macro:.4f}, "
           f"Test AUC: {test_auc:.4f}")
 
+log = (f"Epoch: {epoch:03d}, Loss: {loss:.4f}, "
+          f"Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}, "
+          f"F1-Micro: {test_f1_micro:.4f}, F1-Macro: {test_f1_macro:.4f}, "
+          f"AUC: {test_auc:.4f}")
 
-
+# 获取当前脚本名并构造同名 txt 文件
+py_file = sys.argv[0]
+base_name = os.path.splitext(os.path.basename(py_file))[0]
+txt_filename = "./result/freebase/" + base_name + ".txt"
+print(txt_filename)
+print(log)
+with open(txt_filename, 'a', encoding='utf-8') as f:
+    print("write")
+    f.write(log)
+    f.write("\n")
